@@ -37,14 +37,20 @@ export async function initStore() {
     session = { user: { id: "local" } };
     return { mode: "local", session };
   }
-  const { url, anonKey } = getConfig();
-  supabase = createClient(url, anonKey);
+  
+  if (!supabase) {
+    const { url, anonKey } = getConfig();
+    supabase = createClient(url, anonKey);
+    supabase.auth.onAuthStateChange((event, s) => {
+      session = s;
+      if (event !== 'INITIAL_SESSION') {
+        window.dispatchEvent(new Event("mt-auth"));
+      }
+    });
+  }
+  
   const { data } = await supabase.auth.getSession();
   session = data.session;
-  supabase.auth.onAuthStateChange((_e, s) => {
-    session = s;
-    window.dispatchEvent(new Event("mt-auth"));
-  });
   return { mode: "cloud", session };
 }
 

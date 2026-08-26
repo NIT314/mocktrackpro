@@ -82,7 +82,7 @@ function shell(active, inner, { fabType } = {}) {
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
     logoutBtn.onclick = async () => {
-      if (confirm("Sign out?")) {
+      if (await confirmModal("Are you sure you want to sign out?", "Sign out")) {
         await signOut();
         location.reload();
       }
@@ -109,6 +109,42 @@ function attemptItem(r) {
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function confirmModal(message, confirmText = "OK") {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(5px);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;";
+    
+    const box = document.createElement("div");
+    box.className = "card";
+    box.style.cssText = "width:320px;text-align:center;padding:24px;border:1px solid var(--line);transform:scale(0.9);transition:transform 0.2s;";
+    box.innerHTML = `
+      <p style="margin:0 0 24px;font-size:1.1rem;font-weight:600;">${escapeHtml(message)}</p>
+      <div style="display:flex;gap:12px;">
+        <button class="btn ghost" id="btn-cancel">Cancel</button>
+        <button class="btn danger" id="btn-ok">${escapeHtml(confirmText)}</button>
+      </div>
+    `;
+    
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    
+    requestAnimationFrame(() => {
+      overlay.style.opacity = "1";
+      box.style.transform = "scale(1)";
+    });
+    
+    const close = (result) => {
+      overlay.style.opacity = "0";
+      box.style.transform = "scale(0.9)";
+      setTimeout(() => { if (document.body.contains(overlay)) document.body.removeChild(overlay); }, 200);
+      resolve(result);
+    };
+    
+    document.getElementById("btn-cancel").onclick = () => close(false);
+    document.getElementById("btn-ok").onclick = () => close(true);
+  });
 }
 
 function analysisBlock(rows, type) {
@@ -346,7 +382,7 @@ function renderDetail(id) {
   );
   document.getElementById("edit").onclick = () => go(`/add?id=${r.id}&type=${r.test_type}`);
   document.getElementById("del").onclick = async () => {
-    if (!confirm("Delete this attempt?")) return;
+    if (!(await confirmModal("Delete this attempt permanently?", "Delete"))) return;
     await deleteAttempt(r.id);
     toast("Deleted");
     go(r.test_type === "daily" ? "/quiz" : `/${r.test_type}`);
@@ -368,7 +404,7 @@ function renderAuth() {
     <div class="app-bg"></div>
     <main class="page" style="padding-top:72px">
       <p class="h1">Mock Tracker</p>
-      <p class="sub">Apna account — data Supabase pe rahega.</p>
+      <p class="sub">Apka account — data Supabase pe rahega permanent.</p>
       <form id="auth" class="card">
         ${field("email", "Email", "email", "", "required")}
         ${field("password", "Password", "password", "", "required minlength=6")}

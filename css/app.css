@@ -139,6 +139,7 @@ a { color: var(--mint); text-decoration: none; }
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 .field label { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
 .field input, .field select, .field textarea {
+  width: 100%; min-width: 0;
   background: var(--bg-elev); border: 1px solid var(--line); border-radius: 12px;
   padding: 12px 12px; font-size: 1rem; outline: none;
 }
@@ -259,6 +260,11 @@ a { color: var(--mint); text-decoration: none; }
   }
   
   .metric-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  
+  #app:not(:has(.nav)) .page {
+    max-width: 560px;
+    margin: 0 auto;
+  }
 }
 
 @media (min-width: 1024px) {

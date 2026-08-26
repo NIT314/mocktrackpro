@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { derived, uid } from "./stats.js";
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const CFG_KEY = "mt_supabase";
 const LOCAL_KEY = "mt_attempts";
@@ -17,14 +16,10 @@ export function setExam(exam) {
 }
 
 export function getConfig() {
-  if (SUPABASE_URL && SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE') {
-    return { url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY };
-  }
-  try {
-    return JSON.parse(localStorage.getItem(CFG_KEY) || "{}");
-  } catch {
-    return {};
-  }
+  return { 
+    url: "https://drnfkvrehkiyentapdvo.supabase.co", 
+    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRybmZrdnJlaGtpeWVudGFwZHZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NDc5MjAsImV4cCI6MjEwMzIyMzkyMH0.RY6nOW9HOrNouwfm3E2_d-NUnhc3UktY-8X_lxyzk6s" 
+  };
 }
 
 export function saveConfig(url, anonKey) {

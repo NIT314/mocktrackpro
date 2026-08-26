@@ -60,7 +60,7 @@ function shell(active, inner, { fabType } = {}) {
         <button data-exam="cgl" class="${exam === "cgl" ? "on" : ""}">CGL</button>
         <button data-exam="chsl" class="${exam === "chsl" ? "on" : ""}">CHSL</button>
       </div>
-      <button class="icon-btn" id="settingsBtn" title="Settings">⚙</button>
+      ${isCloud() && currentUser() ? `<button class="icon-btn" id="logoutBtn" title="Sign out" style="font-size:1.1rem">🚪</button>` : ""}
     </header>
     <main class="page">${inner}</main>
     <nav class="nav">
@@ -81,7 +81,15 @@ function shell(active, inner, { fabType } = {}) {
     setExam(b.dataset.exam);
     render();
   };
-  document.getElementById("settingsBtn").onclick = () => go("/settings");
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.onclick = async () => {
+      if (confirm("Sign out?")) {
+        await signOut();
+        location.reload();
+      }
+    };
+  }
   const fab = document.getElementById("fab");
   if (fab) fab.onclick = () => go(`/add?type=${fabType}`);
 }
@@ -357,35 +365,6 @@ function cmp(lab, you, avg, max) {
   </div>`;
 }
 
-function renderSettings() {
-  const cfg = getConfig();
-  shell(
-    "home",
-    `
-    <p class="h1">Settings</p>
-    <p class="sub">Supabase optional hai. Khali chhodo to local phone storage.</p>
-    <form id="cfg" class="card">
-      ${field("url", "Supabase URL", "url", cfg.url, 'placeholder="https://xxxx.supabase.co"')}
-      ${field("anonKey", "Anon key", "textarea", cfg.anonKey)}
-      <button class="btn" type="submit">Save cloud config</button>
-    </form>
-    <div class="card" style="margin-top:10px">
-      <p class="sub" style="margin:0 0 10px">SQL: project ke <code>sql/schema.sql</code> ko Supabase SQL editor mein chalao.</p>
-      ${isCloud() && currentUser() && currentUser().id !== "local" ? `<button class="btn ghost" id="out">Sign out</button>` : ""}
-    </div>
-  `
-  );
-  document.getElementById("cfg").onsubmit = (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    saveConfig(fd.get("url"), fd.get("anonKey"));
-    toast("Saved — reloading");
-    setTimeout(() => location.reload(), 400);
-  };
-  const out = document.getElementById("out");
-  if (out) out.onclick = async () => { await signOut(); location.reload(); };
-}
-
 function renderAuth() {
   root.innerHTML = `
     <div class="app-bg"></div>
@@ -398,7 +377,6 @@ function renderAuth() {
         <button class="btn" type="submit">Sign in</button>
         <button class="btn ghost" type="button" id="up" style="margin-top:8px">Create account</button>
       </form>
-      <p class="sub"><a href="#/settings">Local mode / change project</a></p>
     </main>
   `;
   const form = document.getElementById("auth");
@@ -427,7 +405,6 @@ function renderAuth() {
 async function render() {
   const { parts, params } = parseHash();
   if (isCloud() && !currentUser()) {
-    if (parts[0] === "settings") return renderSettings();
     return renderAuth();
   }
   try {
@@ -441,7 +418,6 @@ async function render() {
   if (a === "full") return renderType("full", "full");
   if (a === "sectional") return renderType("sectional", "sectional");
   if (a === "quiz") return renderType("daily", "daily");
-  if (a === "settings") return renderSettings();
   if (a === "add") {
     const existing = params.id ? await getAttempt(params.id) : null;
     return renderForm(existing, params.type || existing?.test_type);

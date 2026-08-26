@@ -451,9 +451,14 @@ async function render() {
 }
 
 async function boot() {
-  await initStore();
-  if (isCloud() && !currentUser()) renderAuth();
-  else await render();
+  try {
+    await initStore();
+    if (isCloud() && !currentUser()) renderAuth();
+    else await render();
+  } catch (err) {
+    console.error("Boot error:", err);
+    root.innerHTML = `<div style="padding:20px;text-align:center;color:red;margin-top:50px;font-family:sans-serif;">Error connecting to Supabase: ${err.message}<br><br><button onclick="localStorage.removeItem('mt_supabase');location.reload()" style="padding:10px;margin-top:20px;cursor:pointer;">Reset Settings</button></div>`;
+  }
 }
 
 window.addEventListener("hashchange", () => render());

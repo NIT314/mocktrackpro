@@ -268,7 +268,11 @@ function field(name, label, type, value, extra = "") {
 
 function renderForm(existing, presetType) {
   const type = existing?.test_type || presetType || "full";
-  const d = existing || { taken_on: today(), exam: getExam(), test_type: type, platform: "Testbook", ...defaultsFor(type) };
+  const draftKey = `mt_draft_${type}_${existing?.id || 'new'}`;
+  let draft = null;
+  try { draft = JSON.parse(localStorage.getItem(draftKey)); } catch (e) {}
+  
+  const d = { taken_on: today(), exam: getExam(), test_type: type, platform: "Testbook", ...defaultsFor(type), ...(existing || {}), ...(draft || {}) };
   const typeFields =
     type === "full"
       ? `
@@ -317,7 +321,14 @@ function renderForm(existing, presetType) {
     </form>
   `
   );
-  document.getElementById("f").onsubmit = async (e) => {
+  
+  const formEl = document.getElementById("f");
+  formEl.addEventListener("input", () => {
+    const fd = new FormData(formEl);
+    localStorage.setItem(draftKey, JSON.stringify(Object.fromEntries(fd.entries())));
+  });
+
+  formEl.onsubmit = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const row = Object.fromEntries(fd.entries());
@@ -329,6 +340,7 @@ function renderForm(existing, presetType) {
     if (existing) row.id = existing.id;
     try {
       await upsertAttempt(row);
+      localStorage.removeItem(draftKey);
       toast("Saved");
       go(type === "daily" ? "/quiz" : `/${type}`);
     } catch (err) {

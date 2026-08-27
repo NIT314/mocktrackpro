@@ -326,8 +326,6 @@ function renderAll() {
   );
 
   document.getElementById("btn-filter").onclick = () => openFilterModal(() => renderAll());
-    { fabType: "full" }
-  );
 
   document.getElementById("btn-export-csv").onclick = () => {
     if (!cache.length) return toast("No data to export");

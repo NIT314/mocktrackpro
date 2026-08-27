@@ -257,17 +257,57 @@ function renderType(type, navKey, hash) {
   if (canvas) drawSpark(canvas, trend(rows), type === "full" ? "#a78bfa" : type === "sectional" ? "#fbbf24" : "#5eead4");
 }
 
+window.allTabFilters = { type: 'all', platform: 'all', dateStart: '', dateEnd: '', scoreAbove: '', sort: 'newest' };
+
 function renderAll() {
-  const rows = filterRows();
+  let rows = filterRows();
+  
+  // Apply our detailed filters
+  if (window.allTabFilters.type !== 'all') {
+    rows = rows.filter(r => r.test_type === window.allTabFilters.type);
+  }
+  if (window.allTabFilters.platform !== 'all') {
+    rows = rows.filter(r => r.platform === window.allTabFilters.platform);
+  }
+  if (window.allTabFilters.dateStart) {
+    rows = rows.filter(r => new Date(r.taken_on) >= new Date(window.allTabFilters.dateStart));
+  }
+  if (window.allTabFilters.dateEnd) {
+    rows = rows.filter(r => new Date(r.taken_on) <= new Date(window.allTabFilters.dateEnd));
+  }
+  if (window.allTabFilters.scoreAbove !== '') {
+    rows = rows.filter(r => r.score >= Number(window.allTabFilters.scoreAbove));
+  }
+  
+  // Apply Sort
+  rows.sort((a, b) => {
+    if (window.allTabFilters.sort === 'newest') return new Date(b.taken_on) - new Date(a.taken_on);
+    if (window.allTabFilters.sort === 'oldest') return new Date(a.taken_on) - new Date(b.taken_on);
+    const pctA = a.total_marks ? (a.score / a.total_marks) : 0;
+    const pctB = b.total_marks ? (b.score / b.total_marks) : 0;
+    if (window.allTabFilters.sort === 'score_high') return pctB - pctA;
+    if (window.allTabFilters.sort === 'score_low') return pctA - pctB;
+    return 0;
+  });
+
+  const hasActiveFilters = Object.values(window.allTabFilters).some(v => v !== 'all' && v !== '' && v !== 'newest');
+
   shell(
     "all",
     `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
       <div>
-        <p class="h1">All Activity</p>
+        <p class="h1" style="display:flex;align-items:center;gap:8px;">
+          All Activity
+          ${hasActiveFilters ? `<span class="chip" style="font-size:0.65rem;background:var(--coral);color:#fff;padding:2px 6px;">Filtered</span>` : ''}
+        </p>
         <p class="sub">Chronological list of every test</p>
       </div>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="btn-filter" class="btn ghost" style="padding:6px 10px;font-size:0.85rem;display:flex;align-items:center;gap:4px;width:auto;${hasActiveFilters ? 'border-color:var(--mint);color:var(--mint);' : ''}" title="Filter Options">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+          Filter
+        </button>
         <button id="btn-export-csv" class="btn ghost" style="padding:6px 10px;font-size:0.85rem;display:flex;align-items:center;gap:4px;width:auto;" title="Download CSV">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           CSV
@@ -279,9 +319,13 @@ function renderAll() {
       </div>
     </div>
     <div class="card" style="margin-top:10px">
-      <div class="list">${rows.map(attemptItem).join("") || `<div class="empty"><b>Koi data nahi hai</b>Neeche + dabao</div>`}</div>
+      <div class="list">${rows.map(attemptItem).join("") || `<div class="empty"><b>Koi data nahi hai</b>Try adjusting filters ya neeche + dabao</div>`}</div>
     </div>
   `,
+    { fabType: "full" }
+  );
+
+  document.getElementById("btn-filter").onclick = () => openFilterModal(() => renderAll());
     { fabType: "full" }
   );
 
@@ -629,3 +673,112 @@ window.addEventListener('beforeinstallprompt', (e) => {
     }
   };
 });
+
+function openFilterModal(onApply) {
+  const modal = document.createElement("div");
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.2s;";
+  
+  // Get unique platforms that exist in cache
+  const existingPlats = [...new Set(cache.filter(r => r.platform).map(r => r.platform))];
+  const platforms = Array.from(new Set([...existingPlats, "Testbook", "Oliveboard", "RBE", "SuperMocks", "SSC"])).sort();
+  const platOpts = platforms.map(p => `<option value="${p}">${p}</option>`).join("");
+
+  modal.innerHTML = `
+    <div style="width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:24px;background:var(--bg);border:1px solid var(--line);border-bottom:0;max-height:90vh;overflow-y:auto;transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);box-shadow:0 -10px 40px rgba(0,0,0,0.5);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h3 style="margin:0;font-size:1.25rem;">Filter Activity</h3>
+        <button id="close-modal" style="background:transparent;border:none;color:var(--muted);font-size:1.8rem;cursor:pointer;padding:0;line-height:1;">&times;</button>
+      </div>
+      
+      <div class="field">
+        <label>Test Type</label>
+        <select id="f-type">
+          <option value="all">All Types</option>
+          <option value="full">Full Mocks</option>
+          <option value="sectional">Sectional / Chapter</option>
+          <option value="daily">Daily Quiz</option>
+        </select>
+      </div>
+      
+      <div class="field">
+        <label>Platform</label>
+        <select id="f-platform">
+          <option value="all">All Platforms</option>
+          ${platOpts}
+        </select>
+      </div>
+      
+      <div class="grid-2">
+        <div class="field">
+          <label>From Date</label>
+          <input type="date" id="f-date-start" />
+        </div>
+        <div class="field">
+          <label>To Date</label>
+          <input type="date" id="f-date-end" />
+        </div>
+      </div>
+      
+      <div class="field">
+        <label>Score Above (Min Marks)</label>
+        <input type="number" id="f-score" placeholder="e.g. 130" />
+      </div>
+      
+      <div class="field">
+        <label>Sort By</label>
+        <select id="f-sort">
+          <option value="newest">Date: Newest First</option>
+          <option value="oldest">Date: Oldest First</option>
+          <option value="score_high">Performance: Best (Score %)</option>
+          <option value="score_low">Performance: Worst (Score %)</option>
+        </select>
+      </div>
+      
+      <div style="display:flex;gap:12px;margin-top:28px;">
+        <button id="btn-clear" class="btn ghost" style="flex:1;">Clear All</button>
+        <button id="btn-apply" class="btn" style="flex:2;">Apply Filters</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  requestAnimationFrame(() => {
+    modal.style.opacity = "1";
+    modal.firstElementChild.style.transform = "translateY(0)";
+  });
+  
+  // Populate current values
+  document.getElementById("f-type").value = window.allTabFilters.type;
+  document.getElementById("f-platform").value = window.allTabFilters.platform;
+  document.getElementById("f-date-start").value = window.allTabFilters.dateStart;
+  document.getElementById("f-date-end").value = window.allTabFilters.dateEnd;
+  document.getElementById("f-score").value = window.allTabFilters.scoreAbove;
+  document.getElementById("f-sort").value = window.allTabFilters.sort;
+
+  const close = () => {
+    modal.style.opacity = "0";
+    modal.firstElementChild.style.transform = "translateY(100%)";
+    setTimeout(() => modal.remove(), 300);
+  };
+  
+  document.getElementById("close-modal").onclick = close;
+  modal.onclick = (e) => { if (e.target === modal) close(); };
+  
+  document.getElementById("btn-clear").onclick = () => {
+    window.allTabFilters = { type: 'all', platform: 'all', dateStart: '', dateEnd: '', scoreAbove: '', sort: 'newest' };
+    close();
+    onApply();
+  };
+  
+  document.getElementById("btn-apply").onclick = () => {
+    window.allTabFilters.type = document.getElementById("f-type").value;
+    window.allTabFilters.platform = document.getElementById("f-platform").value;
+    window.allTabFilters.dateStart = document.getElementById("f-date-start").value;
+    window.allTabFilters.dateEnd = document.getElementById("f-date-end").value;
+    window.allTabFilters.scoreAbove = document.getElementById("f-score").value;
+    window.allTabFilters.sort = document.getElementById("f-sort").value;
+    close();
+    onApply();
+  };
+}

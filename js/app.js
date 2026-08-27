@@ -267,10 +267,16 @@ function renderAll() {
         <p class="h1">All Activity</p>
         <p class="sub">Chronological list of every test</p>
       </div>
-      <button id="btn-export" class="btn ghost" style="padding:6px 12px;font-size:0.85rem;display:flex;align-items:center;gap:4px;">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        CSV
-      </button>
+      <div style="display:flex;gap:8px;">
+        <button id="btn-export-csv" class="btn ghost" style="padding:6px 10px;font-size:0.85rem;display:flex;align-items:center;gap:4px;" title="Download CSV">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          CSV
+        </button>
+        <button id="btn-export-pdf" class="btn ghost" style="padding:6px 10px;font-size:0.85rem;display:flex;align-items:center;gap:4px;" title="Download PDF">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          PDF
+        </button>
+      </div>
     </div>
     <div class="card" style="margin-top:10px">
       <div class="list">${rows.map(attemptItem).join("") || `<div class="empty"><b>Koi data nahi hai</b>Neeche + dabao</div>`}</div>
@@ -279,7 +285,7 @@ function renderAll() {
     { fabType: "full" }
   );
 
-  document.getElementById("btn-export").onclick = () => {
+  document.getElementById("btn-export-csv").onclick = () => {
     if (!cache.length) return toast("No data to export");
     const headers = ["Test Name", "Type", "Exam", "Date", "Platform", "Score", "Total Marks", "Correct", "Wrong", "Unattempted", "Time (min)", "Total Time", "Percentile", "Rank"];
     const csvRows = cache.map(r => [
@@ -298,6 +304,56 @@ function renderAll() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast("Download started");
+  };
+
+  document.getElementById("btn-export-pdf").onclick = async () => {
+    if (!cache.length) return toast("No data to export");
+    toast("Generating PDF...");
+    const btn = document.getElementById("btn-export-pdf");
+    btn.disabled = true;
+    
+    try {
+      if (!window.jspdf) {
+        await new Promise(r => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"; s.onload = r; document.head.appendChild(s); });
+        await new Promise(r => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"; s.onload = r; document.head.appendChild(s); });
+      }
+      
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      doc.setFontSize(16);
+      doc.text("Mock Tracker Report", 14, 15);
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${today()} | Exam: ${getExam().toUpperCase()}`, 14, 22);
+
+      const head = [["Date", "Test Name", "Platform", "Score", "Accuracy", "%ile"]];
+      const body = cache.map(r => [
+        r.taken_on || "",
+        (r.name || r.test_type).substring(0, 25),
+        r.platform || "",
+        `${r.score}/${r.total_marks}`,
+        `${r.accuracy_pct}%`,
+        r.percentile || "-"
+      ]);
+
+      doc.autoTable({
+        startY: 28,
+        head: head,
+        body: body,
+        theme: 'grid',
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [45, 212, 191], textColor: [6, 34, 28] }, // Using var(--teal) and dark text
+        alternateRowStyles: { fillColor: [245, 245, 245] }
+      });
+
+      doc.save(`mock_tracker_report_${today()}.pdf`);
+      toast("PDF Downloaded");
+    } catch (e) {
+      toast("PDF Generation Failed");
+    } finally {
+      btn.disabled = false;
+    }
   };
 }
 

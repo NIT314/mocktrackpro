@@ -150,7 +150,7 @@ a { color: var(--mint); text-decoration: none; }
 
 .nav {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   height: calc(var(--nav-h) + var(--safe-b));
   padding: 8px 6px var(--safe-b);
   background: color-mix(in srgb, #0b0f14 92%, transparent);

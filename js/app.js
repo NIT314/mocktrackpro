@@ -66,6 +66,7 @@ function shell(active, inner, { fabType } = {}) {
       <a href="#/full" class="${active === "full" ? "on" : ""}">${icons.full}Full</a>
       <a href="#/sectional" class="${active === "sectional" ? "on" : ""}">${icons.sectional}Section</a>
       <a href="#/quiz" class="${active === "daily" ? "on" : ""}">${icons.quiz}Quiz</a>
+      <a href="#/all" class="${active === "all" ? "on" : ""}">${icons.all}All</a>
     </nav>
     ${
       fabType
@@ -254,6 +255,21 @@ function renderType(type, navKey, hash) {
   );
   const canvas = document.getElementById("spark");
   if (canvas) drawSpark(canvas, trend(rows), type === "full" ? "#a78bfa" : type === "sectional" ? "#fbbf24" : "#5eead4");
+}
+
+function renderAll() {
+  const rows = filterRows();
+  shell(
+    "all",
+    `
+    <p class="h1">All Activity</p>
+    <p class="sub">Chronological list of every test · Filters coming soon</p>
+    <div class="card" style="margin-top:10px">
+      <div class="list">${rows.map(attemptItem).join("") || `<div class="empty"><b>Koi data nahi hai</b>Neeche + dabao</div>`}</div>
+    </div>
+  `,
+    { fabType: "full" }
+  );
 }
 
 function field(name, label, type, value, extra = "") {
@@ -464,6 +480,7 @@ async function render() {
   if (a === "full") return renderType("full", "full");
   if (a === "sectional") return renderType("sectional", "sectional");
   if (a === "quiz") return renderType("daily", "daily");
+  if (a === "all") return renderAll();
   if (a === "add") {
     const existing = params.id ? await getAttempt(params.id) : null;
     return renderForm(existing, params.type || existing?.test_type);

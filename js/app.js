@@ -257,7 +257,7 @@ function renderType(type, navKey, hash) {
   if (canvas) drawSpark(canvas, trend(rows), type === "full" ? "#a78bfa" : type === "sectional" ? "#fbbf24" : "#5eead4");
 }
 
-window.allTabFilters = { type: 'all', platform: 'all', dateStart: '', dateEnd: '', scoreAbove: '', sort: 'newest' };
+window.allTabFilters = { type: 'all', platform: 'all', subject: 'all', dateStart: '', dateEnd: '', scoreAbove: '', sort: 'newest' };
 
 function renderAll() {
   let rows = filterRows();
@@ -278,11 +278,17 @@ function renderAll() {
   if (window.allTabFilters.scoreAbove !== '') {
     rows = rows.filter(r => r.score >= Number(window.allTabFilters.scoreAbove));
   }
+  if (window.allTabFilters.subject !== 'all') {
+    rows = rows.filter(r => r.subject === window.allTabFilters.subject);
+  }
   
   // Apply Sort
   rows.sort((a, b) => {
     if (window.allTabFilters.sort === 'newest') return new Date(b.taken_on) - new Date(a.taken_on);
     if (window.allTabFilters.sort === 'oldest') return new Date(a.taken_on) - new Date(b.taken_on);
+    if (window.allTabFilters.sort === 'acc_high') return (b.accuracy_pct || 0) - (a.accuracy_pct || 0);
+    if (window.allTabFilters.sort === 'acc_low') return (a.accuracy_pct || 0) - (b.accuracy_pct || 0);
+    
     const pctA = a.total_marks ? (a.score / a.total_marks) : 0;
     const pctB = b.total_marks ? (b.score / b.total_marks) : 0;
     if (window.allTabFilters.sort === 'score_high') return pctB - pctA;
@@ -688,14 +694,27 @@ function openFilterModal(onApply) {
         <button id="close-modal" style="background:transparent;border:none;color:var(--muted);font-size:1.8rem;cursor:pointer;padding:0;line-height:1;">&times;</button>
       </div>
       
-      <div class="field">
-        <label>Test Type</label>
-        <select id="f-type">
-          <option value="all">All Types</option>
-          <option value="full">Full Mocks</option>
-          <option value="sectional">Sectional / Chapter</option>
-          <option value="daily">Daily Quiz</option>
-        </select>
+      <div class="grid-2">
+        <div class="field">
+          <label>Test Type</label>
+          <select id="f-type">
+            <option value="all">All Types</option>
+            <option value="full">Full Mocks</option>
+            <option value="sectional">Sectional / Chapter</option>
+            <option value="daily">Daily Quiz</option>
+          </select>
+        </div>
+        
+        <div class="field">
+          <label>Subject</label>
+          <select id="f-subject">
+            <option value="all">All Subjects</option>
+            <option value="Maths">Maths</option>
+            <option value="Reasoning">Reasoning</option>
+            <option value="English">English</option>
+            <option value="GK/GS">GK / GS</option>
+          </select>
+        </div>
       </div>
       
       <div class="field">
@@ -729,6 +748,8 @@ function openFilterModal(onApply) {
           <option value="oldest">Date: Oldest First</option>
           <option value="score_high">Performance: Best (Score %)</option>
           <option value="score_low">Performance: Worst (Score %)</option>
+          <option value="acc_high">Accuracy: Highest</option>
+          <option value="acc_low">Accuracy: Lowest</option>
         </select>
       </div>
       
@@ -748,6 +769,7 @@ function openFilterModal(onApply) {
   
   // Populate current values
   document.getElementById("f-type").value = window.allTabFilters.type;
+  document.getElementById("f-subject").value = window.allTabFilters.subject;
   document.getElementById("f-platform").value = window.allTabFilters.platform;
   document.getElementById("f-date-start").value = window.allTabFilters.dateStart;
   document.getElementById("f-date-end").value = window.allTabFilters.dateEnd;
@@ -764,13 +786,14 @@ function openFilterModal(onApply) {
   modal.onclick = (e) => { if (e.target === modal) close(); };
   
   document.getElementById("btn-clear").onclick = () => {
-    window.allTabFilters = { type: 'all', platform: 'all', dateStart: '', dateEnd: '', scoreAbove: '', sort: 'newest' };
+    window.allTabFilters = { type: 'all', platform: 'all', subject: 'all', dateStart: '', dateEnd: '', scoreAbove: '', sort: 'newest' };
     close();
     onApply();
   };
   
   document.getElementById("btn-apply").onclick = () => {
     window.allTabFilters.type = document.getElementById("f-type").value;
+    window.allTabFilters.subject = document.getElementById("f-subject").value;
     window.allTabFilters.platform = document.getElementById("f-platform").value;
     window.allTabFilters.dateStart = document.getElementById("f-date-start").value;
     window.allTabFilters.dateEnd = document.getElementById("f-date-end").value;

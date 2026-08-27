@@ -507,3 +507,40 @@ boot();
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js");
 }
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  window.deferredPrompt = e;
+  
+  if (document.getElementById("install-banner")) return;
+  
+  if (!document.getElementById("install-style")) {
+    const style = document.createElement("style");
+    style.id = "install-style";
+    style.textContent = "@keyframes slideDown { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }";
+    document.head.appendChild(style);
+  }
+
+  const banner = document.createElement("div");
+  banner.id = "install-banner";
+  banner.style.cssText = "position:fixed;top:16px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:400px;background:var(--mint);color:#06221c;padding:12px 16px;border-radius:14px;z-index:999;display:flex;justify-content:space-between;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,0.4);font-weight:600;font-size:0.95rem;animation:slideDown 0.3s ease-out;";
+  banner.innerHTML = `
+    <span>Install Mock Tracker</span>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button id="btn-install" style="background:#06221c;color:var(--mint);border:none;padding:6px 14px;border-radius:8px;font-weight:700;cursor:pointer;">Install</button>
+      <button id="btn-close-install" style="background:transparent;border:none;color:#06221c;font-size:1.4rem;cursor:pointer;padding:0 4px;line-height:1;">&times;</button>
+    </div>
+  `;
+  document.body.appendChild(banner);
+
+  document.getElementById("btn-close-install").onclick = () => banner.remove();
+  document.getElementById("btn-install").onclick = async () => {
+    banner.remove();
+    if (window.deferredPrompt) {
+      window.deferredPrompt.prompt();
+      const { outcome } = await window.deferredPrompt.userChoice;
+      console.log('Install prompt:', outcome);
+      window.deferredPrompt = null;
+    }
+  };
+});

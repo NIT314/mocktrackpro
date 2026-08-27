@@ -262,14 +262,43 @@ function renderAll() {
   shell(
     "all",
     `
-    <p class="h1">All Activity</p>
-    <p class="sub">Chronological list of every test · Filters coming soon</p>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <p class="h1">All Activity</p>
+        <p class="sub">Chronological list of every test</p>
+      </div>
+      <button id="btn-export" class="btn ghost" style="padding:6px 12px;font-size:0.85rem;display:flex;align-items:center;gap:4px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        CSV
+      </button>
+    </div>
     <div class="card" style="margin-top:10px">
       <div class="list">${rows.map(attemptItem).join("") || `<div class="empty"><b>Koi data nahi hai</b>Neeche + dabao</div>`}</div>
     </div>
   `,
     { fabType: "full" }
   );
+
+  document.getElementById("btn-export").onclick = () => {
+    if (!cache.length) return toast("No data to export");
+    const headers = ["Test Name", "Type", "Exam", "Date", "Platform", "Score", "Total Marks", "Correct", "Wrong", "Unattempted", "Time (min)", "Total Time", "Percentile", "Rank"];
+    const csvRows = cache.map(r => [
+      r.name || "", r.test_type || "", r.exam || "", r.taken_on || "", r.platform || "",
+      r.score ?? "", r.total_marks ?? "", r.correct ?? "", r.wrong ?? "", r.unattempted ?? "",
+      r.time_taken_min ?? "", r.total_time_min ?? "", r.percentile ?? "", r.rank ?? ""
+    ].map(f => `"${String(f).replace(/"/g, '""')}"`).join(","));
+    
+    const blob = new Blob([headers.join(",") + "\\n" + csvRows.join("\\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `mock_tracker_data_${today()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast("Download started");
+  };
 }
 
 function field(name, label, type, value, extra = "") {

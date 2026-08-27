@@ -229,8 +229,8 @@ function renderHome() {
       <a class="type-tile daily" href="#/quiz"><span class="n">${daily.length}</span><strong>Quiz</strong><em>Daily 10Q</em></a>
     </div>
     <div class="card">
-      <div class="kicker">Recent</div>
-      <div class="list">${all.slice(0, 6).map(attemptItem).join("") || `<div class="empty">Abhi kuch nahi. + se pehla test add karo.</div>`}</div>
+      <div class="kicker">Recent Activity</div>
+      <div class="list">${all.slice(0, 4).map(attemptItem).join("") || `<div class="empty">Abhi kuch nahi. + se pehla test add karo.</div>`}</div>
     </div>
   `,
     { fabType: "full" }
